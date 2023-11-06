@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import headerLogo from "../images/logo-header.svg";
-import headerLine from "../images/Line.svg";
 
 function Header({ email, onSignOut, route, title }) {
   return (

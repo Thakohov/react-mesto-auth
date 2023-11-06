@@ -2,7 +2,7 @@ import React from "react";
 
 import { Route, Routes } from "react-router-dom";
 import { Navigate } from "react-router-dom";
-import * as auth from "../utils/Auth.jsx";
+import * as auth from "../utils/Auth.js";
 import ProtectedRouteElement from "./ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,7 @@ import unionFail from "../images/Union-fail.svg";
 
 import Header from "./Header.jsx";
 import Main from "./Main.jsx";
+import Footer from "./Footer.jsx";
 import ImagePopup from "./ImagePopup.jsx";
 import Register from "./Register.jsx";
 import Login from "./Login.jsx";
@@ -33,7 +34,6 @@ const App = () => {
   const [selectedCard, setSelectedCard] = React.useState({});
   const [currentUser, setCurrentUser] = React.useState({});
   const [cards, setCards] = React.useState([]);
-  const [userData, setUserData] = React.useState([]);
   const [email, setEmail] = React.useState("");
   const [infoToolTipImage, setInfoToolTipImage] = React.useState("");
   const [infoToolTipTitle, setInfoToolTipTitle] = React.useState("");
@@ -42,46 +42,50 @@ const App = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    Promise.all([Api.getInitialCards(), Api.getUserInfo()])
-      .then(([items, user]) => {
-        setCards(items);
-        setCurrentUser(user);
-      })
-
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
+    if (loggedIn) {
+      Promise.all([Api.getInitialCards(), Api.getUserInfo()])
+        .then(([items, user]) => {
+          setCards(items);
+          setCurrentUser(user);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }
+  }, [loggedIn]);
 
   React.useEffect(() => {
     handleTokenCheck();
   }, []);
 
   const handleTokenCheck = () => {
-    if (localStorage.getItem("jwt")) {
-      const jwt = localStorage.getItem("jwt");
-      auth.checkToken(jwt).then((data) => {
-        if (data) {
-          setLoggedIn(true);
-          setEmail(data.data.email);
-          setUserData(userData);
-          navigate("/main", { replace: true });
-        }
-      });
+    const jwt = localStorage.getItem("jwt");
+    if (jwt) {
+      auth
+        .checkToken(jwt)
+        .then((data) => {
+          if (data) {
+            setLoggedIn(true);
+            setEmail(data.data.email);
+            navigate("/main", { replace: true });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     }
   };
 
   const signOut = () => {
     localStorage.removeItem("jwt");
     navigate("/signin", { replace: true });
-    setEmail(null);
+    setEmail("");
   };
 
   const handleRegister = (email, password) => {
     auth
       .register(email, password)
-      .then((res) => {
-        console.log(res);
+      .then(() => {
         setInfoToolTipImage(unionSuccess);
         setInfoToolTipTitle("Вы успешно зарегистрировались!");
         navigate("/signin", { replace: true });
@@ -198,16 +202,44 @@ const App = () => {
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
         <Routes>
-          <Route path="/" element={ loggedIn ? (<Navigate to="/main" replace />) : (<Navigate to="/signin" replace />)} />
-          <Route path="/signup" element={
+          <Route
+            path="/*"
+            element={
+              loggedIn ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Navigate to="/signin" replace />
+              )
+            }
+          />
+          <Route
+            path="/signup"
+            element={
               <>
                 <Header title="Войти" route="/signin" />
                 <Register onSubmit={handleRegister} />
               </>
             }
           />
-          <Route path="/signin" element={ <> <Header title="Регистрация" route="/signup" /> <Login onLogin={handleLogin} /> </>}/>
-          <Route path="/main" element={<> <Header title="Выйти" route="/signin" onSignOut={signOut} email={email}/>
+          <Route
+            path="/signin"
+            element={
+              <>
+                <Header title="Регистрация" route="/signup" />
+                <Login onLogin={handleLogin} />
+              </>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <>
+                <Header
+                  title="Выйти"
+                  route="/signin"
+                  onSignOut={signOut}
+                  email={email}
+                />
                 <ProtectedRouteElement
                   element={Main}
                   loggedIn={loggedIn}
@@ -217,9 +249,9 @@ const App = () => {
                   onCardClick={handleCardClick}
                   onCardLike={handleCardLike}
                   onCardDelete={handleCardDelete}
-                  userData={userData}
                   cards={cards}
                 />
+                <Footer />
               </>
             }
           />
