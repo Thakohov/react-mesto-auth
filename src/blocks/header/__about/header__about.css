@@ -10,7 +10,6 @@
   .header__about {
     flex-direction: column;
     margin-right: 30px;
-    row-gap: 9px;
     transition: 1s;
   }
 }
