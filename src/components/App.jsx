@@ -1,13 +1,9 @@
+// Импорт Реакта, Роутов и Навигаций
+
 import React from "react";
+import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 
-import { Route, Routes } from "react-router-dom";
-import { Navigate } from "react-router-dom";
-import * as auth from "../utils/Auth.js";
-import ProtectedRouteElement from "./ProtectedRoute";
-import { useNavigate } from "react-router-dom";
-
-import unionSuccess from "../images/Union-success.svg";
-import unionFail from "../images/Union-fail.svg";
+// Импорт компонентов
 
 import Header from "./Header.jsx";
 import Main from "./Main.jsx";
@@ -15,14 +11,23 @@ import Footer from "./Footer.jsx";
 import ImagePopup from "./ImagePopup.jsx";
 import Register from "./Register.jsx";
 import Login from "./Login.jsx";
-import InfoTooltip from "./InfoTooltip.jsx";
-import { CurrentUserContext } from "../contexts/CurrentUserContext.jsx";
 import EditProfilePopup from "./EditProfilePopup.jsx";
 import EditAvatarPopup from "./EditAvatarPopup.jsx";
 import AddPlacePopup from "./AddPlacePopup.jsx";
+import { CurrentUserContext } from "../contexts/CurrentUserContext.jsx";
+import ProtectedRouteElement from "./ProtectedRoute";
+import InfoTooltip from "./InfoTooltip.jsx";
+
+// Импорт запросов на сервер
+
+import * as auth from "../utils/Auth.js";
 import Api from "../utils/Api.js";
 
+// Импорт стилей и картинок
+
 import "../pages/index.css";
+import resolve from "../images/Union-success.svg";
+import reject from "../images/Union-fail.svg";
 
 const App = () => {
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] =
@@ -37,9 +42,11 @@ const App = () => {
   const [email, setEmail] = React.useState("");
   const [infoToolTipImage, setInfoToolTipImage] = React.useState("");
   const [infoToolTipTitle, setInfoToolTipTitle] = React.useState("");
-
   const [loggedIn, setLoggedIn] = React.useState(false);
+
   const navigate = useNavigate();
+
+  // Реакт эффекты
 
   React.useEffect(() => {
     if (loggedIn) {
@@ -57,6 +64,8 @@ const App = () => {
   React.useEffect(() => {
     handleTokenCheck();
   }, []);
+
+  // Проверка на наличие токена, чтобы перенаправлять пользователя на главную страницу
 
   const handleTokenCheck = () => {
     const jwt = localStorage.getItem("jwt");
@@ -76,22 +85,27 @@ const App = () => {
     }
   };
 
+  // Функция выхода из учетной записи
+
   const signOut = () => {
     localStorage.removeItem("jwt");
     navigate("/signin", { replace: true });
     setEmail("");
+    setLoggedIn(false);
   };
+
+  // Функции запроса на Авторизацию и Регистрацию
 
   const handleRegister = (email, password) => {
     auth
       .register(email, password)
       .then(() => {
-        setInfoToolTipImage(unionSuccess);
+        setInfoToolTipImage(resolve);
         setInfoToolTipTitle("Вы успешно зарегистрировались!");
         navigate("/signin", { replace: true });
       })
       .catch(() => {
-        setInfoToolTipImage(unionFail);
+        setInfoToolTipImage(reject);
         setInfoToolTipTitle("Что-то пошло не так! Попробуйте ещё раз.");
       })
       .finally(handleInfoToolTipOpen);
@@ -107,15 +121,13 @@ const App = () => {
         navigate("/main", { replace: true });
       })
       .catch(() => {
-        setInfoToolTipImage(unionFail);
+        setInfoToolTipImage(reject);
         setInfoToolTipTitle("Что-то пошло не так! Попробуйте ещё раз.");
         handleInfoToolTipOpen();
       });
   };
 
-  const handleCardClick = (card) => {
-    setSelectedCard(card);
-  };
+  // Функции постановки лайков и удаления карточки
 
   function handleCardDelete(cardId) {
     Api.deleteCard(cardId)
@@ -141,6 +153,12 @@ const App = () => {
       });
   }
 
+  // Функции открытия попапов
+
+  const handleCardClick = (card) => {
+    setSelectedCard(card);
+  };
+
   const handleEditAvatarClick = () => {
     setIsEditAvatarPopupOpen(!isEditAvatarPopupOpen);
   };
@@ -157,6 +175,8 @@ const App = () => {
     setIsInfoToolTipOpen(!isInfoToolTipOpen);
   };
 
+  // Функция закрытия всех попапов
+
   const closeAllPopups = () => {
     setIsEditAvatarPopupOpen(false);
     setIsEditProfilePopupOpen(false);
@@ -164,6 +184,8 @@ const App = () => {
     setIsInfoToolTipOpen(false);
     setSelectedCard(!selectedCard);
   };
+
+  // Функции обновления данных пользователя
 
   const handleUpdateUser = (userInfo) => {
     Api.setUserInfo(userInfo)
@@ -187,6 +209,8 @@ const App = () => {
       });
   };
 
+  // Функция запроса создания карточки
+
   const handleAddPlaceSubmit = (info) => {
     Api.createCard(info)
       .then((newCard) => {
@@ -201,6 +225,7 @@ const App = () => {
   return (
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
+        <Header onSignOut={signOut} email={email} />
         <Routes>
           <Route
             path="/*"
@@ -216,7 +241,6 @@ const App = () => {
             path="/signup"
             element={
               <>
-                <Header title="Войти" route="/signin" />
                 <Register onSubmit={handleRegister} />
               </>
             }
@@ -225,7 +249,6 @@ const App = () => {
             path="/signin"
             element={
               <>
-                <Header title="Регистрация" route="/signup" />
                 <Login onLogin={handleLogin} />
               </>
             }
@@ -234,12 +257,6 @@ const App = () => {
             path="/"
             element={
               <>
-                <Header
-                  title="Выйти"
-                  route="/signin"
-                  onSignOut={signOut}
-                  email={email}
-                />
                 <ProtectedRouteElement
                   element={Main}
                   loggedIn={loggedIn}
@@ -251,12 +268,12 @@ const App = () => {
                   onCardDelete={handleCardDelete}
                   cards={cards}
                 />
-                <Footer />
               </>
             }
           />
         </Routes>
 
+        {loggedIn && <Footer />}
         <InfoTooltip
           isOpen={isInfoToolTipOpen}
           onClose={closeAllPopups}
